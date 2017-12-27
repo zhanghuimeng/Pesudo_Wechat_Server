@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <QDebug>
 
-MyServer::MyServer(): serverPort(6666)
+MyServer::MyServer(): serverPort(6666), QThread()
 {
 
 }
