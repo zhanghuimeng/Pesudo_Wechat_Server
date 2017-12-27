@@ -19,6 +19,7 @@ public:
 private slots:
     void slot_error_box(QString);
     void slot_info_box(QString);
+    void slot_clear_textBrowser();
 
 private:
     Ui::MainWindow *ui;

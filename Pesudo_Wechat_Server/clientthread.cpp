@@ -41,12 +41,14 @@ void ClientThread::run()
             log("error", "Receiving error");
             continue;
         }
+        buffer[n] = '\0';
         if (n == 0 || strlen(buffer) == 0)  // has received nothing
             continue;
 
         log("info", QString("Received message from client: length=%1, content=%2").arg(n).arg(buffer));
 
         parseReceived(buffer, n);
+        memset(buffer, 0, MAXLEN * sizeof(char));
     }
 }
 
