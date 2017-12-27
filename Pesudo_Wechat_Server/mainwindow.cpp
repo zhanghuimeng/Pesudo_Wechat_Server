@@ -23,7 +23,7 @@ void MainWindow::slot_error_box(QString msg)
     ui->textBrowser->textCursor().insertText("Error: ");
     ui->textBrowser->textCursor().insertText(msg);
     ui->textBrowser->textCursor().insertText("\n");
-    QMessageBox::about(this, "Error", msg);
+    // QMessageBox::about(this, "Error", msg);
 }
 
 void MainWindow::slot_info_box(QString msg)
@@ -31,5 +31,5 @@ void MainWindow::slot_info_box(QString msg)
     ui->textBrowser->textCursor().insertText("Info: ");
     ui->textBrowser->textCursor().insertText(msg);
     ui->textBrowser->textCursor().insertText("\n");
-    QMessageBox::about(this, "Info", msg);
+    // QMessageBox::about(this, "Info", msg);
 }
