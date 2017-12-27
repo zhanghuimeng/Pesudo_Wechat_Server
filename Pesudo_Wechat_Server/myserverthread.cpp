@@ -1,4 +1,5 @@
 #include "myserverthread.h"
+#include "clientthread.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -10,16 +11,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-MyServerThread::MyServerThread(): serverPort(6666), QThread()
+MyServerThread::MyServerThread(): QThread(), serverPort(6666)
 {
 
-}
-
-QByteArray MyServerThread::jsonToString(QJsonObject json)
-{
-    QJsonDocument doc(json);
-    QByteArray ba = doc.toBinaryData();
-    return ba;
 }
 
 void MyServerThread::log(QString level, QString msg)
@@ -100,73 +94,24 @@ void MyServerThread::run()
         log("info", info);
         info.clear();
 
-        n = recv(clientfd, buf, MAXLEN, 0);
-        buf[n] = '\0';
-
-        info = QString("Received message from client: length=%1").arg(n);
-        log_info(info);
-        info.clear();
-
-        parseReceived(buf, n);
-
-        close(clientfd);
+        ClientThread* clientThread = new ClientThread(clientfd);
+        // send log to ui
+        connect(clientThread, SIGNAL(signal_error_box(QString)), this, SIGNAL(signal_error_box(QString)));
+        connect(clientThread, SIGNAL(signal_info_box(QString)), this, SIGNAL(signal_info_box(QString)));
+        // user login
+        connect(clientThread, SIGNAL(signal_validate_user(QString,QString)), this,
+                SLOT(slot_validate_user(QString,QString)));
+        clientThread->start();
     }
 
     close(socketfd);
 }
 
-void MyServerThread::slot_send_bytes(const char *bytes)
+void MyServerThread::slot_validate_user(QString username, QString password)
 {
-    if (send(clientfd, bytes, strlen(bytes), 0) < 0)
-    {
-        error = "Cannot send data to client";
-        log("error", error);
-        error.clear();
-    }
-    info = QString("Send data to client, length=%1").arg(strlen(bytes));
-    log("info", info);
-    info.clear();
-}
-
-void MyServerThread::parseReceived(const char* msg, int length)
-{
-    QJsonDocument doc = QJsonDocument::fromRawData(msg, length);
-    QJsonObject jsonRec = doc.object();
-    QString action = jsonRec.find("action").value().toString();
-
-    info = QString("Parsing: client action=%1").arg(action);
-    log_info(info);
-    info.clear();
-
-    /*
-    action: "client_login"
-    username: "zhm_x"
-    password: "123456"
-     */
-    if (action == "client_login")
-    {
-        log_info("Action: client login");
-        QString username = jsonRec.find("username").value().toString();
-        QString password = jsonRec.find("password").value().toString();
-
-        /*
-        action: "server_login_response"
-        correct: "true/false"
-        */
-        QJsonObject jsonSend;
-        jsonSend.insert("action", QJsonValue("server_login_response"));
-
-        if (userMap.validateUser(username, password))
-        {
-            jsonSend.insert("correct", QJsonValue(true));
-            log_info("Action: client login succeeded");
-            log_info(QString("username = %1").arg(username));
-        }
-        else
-        {
-            jsonSend.insert("correct", QJsonValue(false));
-            log_info("Action: client login failed");
-        }
-        slot_send_bytes(jsonToString(jsonSend).data());
-    }
+    ClientThread* sender = (ClientThread*) QObject::sender();
+    if (userMap.validateUser(username, password))
+        sender->slot_validate_user(userMap.findUser(username));
+    else
+        sender->slot_validate_user(NULL);
 }

@@ -20,6 +20,7 @@ class UserMap
 public:
     UserMap(bool def = true);
     bool validateUser(QString username, QString password);
+    User* findUser(QString username);
 
 private:
     QMap<QString, User> userMap;

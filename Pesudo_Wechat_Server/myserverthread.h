@@ -3,13 +3,15 @@
 
 #include <QThread>
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include "user.h"
+#include "clientthread.h"
 
 #define BACKLOG 10  // 指定了该服务器所能连接客户端的最大数目
-#define MAXLEN 1050000
 
 class MyServerThread: public QThread
 {
@@ -29,6 +31,8 @@ private:
     void log_error(QString msg);
     void log_info(QString msg);
     QByteArray jsonToString(QJsonObject json);
+    QByteArray jsonToReadableString(QJsonObject json);
+    QJsonObject stringToJson(const char* bytes, int len);
 
 protected:
     void run();
@@ -38,7 +42,7 @@ public:
     MyServerThread();
 
 public slots:
-    void slot_send_bytes(const char *bytes);
+    void slot_validate_user(QString username, QString password);
 
 signals:
     void signal_error_box(QString);

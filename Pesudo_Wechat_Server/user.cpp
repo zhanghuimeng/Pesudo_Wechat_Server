@@ -24,6 +24,13 @@ bool UserMap::validateUser(QString username, QString password)
     return true;
 }
 
+User* UserMap::findUser(QString username)
+{
+    if (!userMap.contains(username))
+        return NULL;
+    return &userMap.find(username).value();
+}
+
 User::User(QString username, QString password): username(username), password(password)
 {
 
