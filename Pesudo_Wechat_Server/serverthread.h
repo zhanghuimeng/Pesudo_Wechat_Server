@@ -12,7 +12,7 @@
 #include "clientthread.h"
 
 #define BACKLOG 100  // 指定了该服务器所能连接客户端的最大数目
-#define PORT 3333
+#define PORT 3777
 
 class ServerThread: public QThread
 {

@@ -99,6 +99,14 @@ void ClientThread::parseReceived(const char* msg, int length)
         log("info", "parseReceived(): Action: client requiring friends list");
         slot_send_friend_list();
     }
+    /*
+    action: "send_text_to_server"
+    text: {text: "send some text blabla...", time: "2017/1/1:00:00:00", sendby: "zhm_1", sendto: "zhm_2"}
+    */
+    else if (action == "send_text_to_server")
+    {
+        log("info", "parseReceived(): Action: receiving text from client");
+    }
 }
 
 void ClientThread::slot_validate_user(User *user)
