@@ -1,5 +1,14 @@
 # Pesudo_Wechat_Server
 
+## checklist
+* 用户登录（√）
+* 用户账户、联系人信息同步（√）
+* 查找并添加好友
+* 好友间实时聊天
+* 好友间非实时聊天
+* 好友间文件传输
+* 好友间非实时文件传输	
+
 发送文件的方法打算参照这篇文章，直接用json发送：[http://blog.csdn.net/xingty/article/details/44201379](http://blog.csdn.net/xingty/article/details/44201379) ，文件大小限制为1MB
 
 ## server和client传送消息的格式
@@ -16,7 +25,7 @@
 #### client发送
 	action: "get_friends_list"
 	username: "zhm_1"
-#### server回复
+#### server回复/发送
 	action: "send_friends_list_to_client"
 	friends: [{username: "zhm_2"}, {username: "zhm_3"}]
 

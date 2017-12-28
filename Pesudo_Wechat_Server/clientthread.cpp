@@ -1,5 +1,6 @@
 #include "clientthread.h"
 #include <QDebug>
+#include <QJsonArray>
 
 ClientThread::ClientThread(int clientfd): QThread(), clientfd(clientfd), buffer(new char[MAXLEN]), user(NULL)
 {
@@ -8,7 +9,7 @@ ClientThread::ClientThread(int clientfd): QThread(), clientfd(clientfd), buffer(
 
 void ClientThread::log(QString level, QString msg)
 {
-    qDebug() << QString("ClientThread(socketfd=%1): ").arg(clientfd) << level << ": " << msg << endl;
+    qDebug() << level << QString(": ClientThread(socketfd=%1)::%2").arg(clientfd).arg(msg) << endl;
     if (level == "error")
         emit signal_error_box(msg);
     else if (level == "info")
@@ -38,14 +39,14 @@ void ClientThread::run()
         int n = recv(clientfd, buffer, MAXLEN, 0);
         if (n < 0)
         {
-            log("error", "Receiving error");
+            log("error", "run(): Receiving error");
             continue;
         }
         buffer[n] = '\0';
         if (n == 0 || strlen(buffer) == 0)  // has received nothing
             continue;
 
-        log("info", QString("Received message from client: length=%1, content=%2").arg(n).arg(buffer));
+        log("info", QString("run(): Received message from client: length=%1, content=%2").arg(n).arg(buffer));
 
         parseReceived(buffer, n);
         memset(buffer, 0, MAXLEN * sizeof(char));
@@ -56,10 +57,10 @@ void ClientThread::slot_send_bytes(const char *bytes)
 {
     if (send(clientfd, bytes, strlen(bytes), 0) < 0)
     {
-        log("error", "Cannot send data to client");
+        log("error", "slot_send_bytes(): Cannot send data to client");
         return;
     }
-    log("info", QString("Send data to client, length=%1, content=%2").arg(strlen(bytes)).arg(bytes));
+    log("info", QString("slot_send_bytes(): Send data to client, length=%1, content=%2").arg(strlen(bytes)).arg(bytes));
 }
 
 void ClientThread::slot_send_json(QJsonObject jsonObject)
@@ -72,7 +73,7 @@ void ClientThread::parseReceived(const char* msg, int length)
     QJsonObject jsonRec = stringToJson(msg, length);
     QString action = jsonRec.find("action").value().toString();
 
-    log("info", QString("Parsing: client action=%1, json=%2").arg(action).arg(jsonToString(jsonRec).data()));
+    log("info", QString("parseReceived(): Parsing: client action=%1, json=%2").arg(action).arg(jsonToString(jsonRec).data()));
 
     /*
     action: "client_login"
@@ -81,13 +82,22 @@ void ClientThread::parseReceived(const char* msg, int length)
      */
     if (action == "client_login")
     {
-        log("info", "Action: client logining");
+        log("info", "parseReceived(): Action: client logining");
         QString username = jsonRec.find("username").value().toString();
         QString password = jsonRec.find("password").value().toString();
 
         emit signal_validate_user(username, password);
         // call ServerThread slot_validate_user
         // ServerThread direct call slot_validate_user
+    }
+    /*
+    action: "get_friends_list"
+    username: "zhm_1"
+    */
+    else if (action == "get_friends_list")
+    {
+        log("info", "parseReceived(): Action: client requiring friends list");
+        slot_send_friend_list();
     }
 }
 
@@ -102,15 +112,41 @@ void ClientThread::slot_validate_user(User *user)
     if (user != NULL)
     {
         jsonSend.insert("correct", QJsonValue(true));
-        log("info", "Action: client login succeeded");
-        log("info", QString("username = %1").arg(user->getUsername()));
+        log("info", "slot_validate_user(): Action: client login succeeded");
+        log("info", QString("slot_validate_user(): username = %1").arg(user->getUsername()));
+        this->user = user;
+        slot_send_friend_list();
     }
     else
     {
         jsonSend.insert("correct", QJsonValue(false));
-        log("info", "Action: client login failed");
-        this->user = user;
+        log("info", "slot_validate_user(): Action: client login failed");
     }
     slot_send_json(jsonSend);
 }
 
+/**
+ * @brief send the friend list to a user
+ */
+void ClientThread::slot_send_friend_list()
+{
+    log("info", QString("slot_send_friend_list(): sending user \"%1\" friend list").arg(user->getUsername()));
+    /*
+    action: "send_friends_list_to_client"
+    friends: [{username: "zhm_2"}, {username: "zhm_3"}]
+    */
+    QJsonObject jsonObject;
+    jsonObject.insert("action", "send_friends_list_to_client");
+    QJsonArray friendArray;
+    QList<User*> friendList = user->getFriendList();
+    for (int i = 0; i < friendList.size(); i++)
+    {
+        QJsonObject a;
+        a.insert("username", friendList[i]->getUsername());
+        friendArray.append(a);
+    }
+    jsonObject.insert("friends", friendArray);
+
+    log("info", QString("slot_send_friend_list(): size=%1").arg(friendArray.size()));
+    slot_send_json(jsonObject);
+}

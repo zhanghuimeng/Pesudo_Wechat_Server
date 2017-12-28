@@ -27,6 +27,7 @@ public slots:
     void slot_send_bytes(const char *bytes);
     void slot_send_json(QJsonObject jsonObject);
     void slot_validate_user(User* user);  // send by ServerThread to receive the user
+    void slot_send_friend_list();  // send friends to client
 
 protected:
     void run();

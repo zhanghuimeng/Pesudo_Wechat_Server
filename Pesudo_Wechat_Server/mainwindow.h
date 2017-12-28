@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "myserverthread.h"
+#include "serverthread.h"
 
 namespace Ui {
 class MainWindow;
@@ -23,7 +23,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
-    MyServerThread myServer;
+    ServerThread myServer;
 };
 
 #endif // MAINWINDOW_H

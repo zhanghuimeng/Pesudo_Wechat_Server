@@ -11,9 +11,10 @@
 #include "user.h"
 #include "clientthread.h"
 
-#define BACKLOG 10  // 指定了该服务器所能连接客户端的最大数目
+#define BACKLOG 100  // 指定了该服务器所能连接客户端的最大数目
+#define PORT 3333
 
-class MyServerThread: public QThread
+class ServerThread: public QThread
 {
     Q_OBJECT
 private:
@@ -39,7 +40,7 @@ protected:
     void parseReceived(const char* msg, int length);
 
 public:
-    MyServerThread();
+    ServerThread();
 
 public slots:
     void slot_validate_user(QString username, QString password);

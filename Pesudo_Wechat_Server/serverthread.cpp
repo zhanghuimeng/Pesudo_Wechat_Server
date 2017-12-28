@@ -1,4 +1,4 @@
-#include "myserverthread.h"
+#include "serverthread.h"
 #include "clientthread.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -11,12 +11,12 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-MyServerThread::MyServerThread(): QThread(), serverPort(6666)
+ServerThread::ServerThread(): QThread(), serverPort(PORT)
 {
 
 }
 
-void MyServerThread::log(QString level, QString msg)
+void ServerThread::log(QString level, QString msg)
 {
     if (level == "error") {
         emit signal_error_box(msg);
@@ -27,17 +27,17 @@ void MyServerThread::log(QString level, QString msg)
     qDebug() << "MyServerThread: " << level << ": " << msg << endl;
 }
 
-void MyServerThread::log_error(QString msg)
+void ServerThread::log_error(QString msg)
 {
     log("error", msg);
 }
 
-void MyServerThread::log_info(QString msg)
+void ServerThread::log_info(QString msg)
 {
     log("info", msg);
 }
 
-void MyServerThread::run()
+void ServerThread::run()
 {
     // Use linux socket to establish the server
     /* 该函数包含三个参数:
@@ -107,7 +107,7 @@ void MyServerThread::run()
     close(socketfd);
 }
 
-void MyServerThread::slot_validate_user(QString username, QString password)
+void ServerThread::slot_validate_user(QString username, QString password)
 {
     ClientThread* sender = (ClientThread*) QObject::sender();
     if (userMap.validateUser(username, password))
