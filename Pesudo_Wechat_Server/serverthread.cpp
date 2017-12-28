@@ -102,6 +102,9 @@ void ServerThread::run()
         // user login
         connect(clientThread, SIGNAL(signal_validate_user(QString,QString)), this,
                 SLOT(slot_validate_user(QString,QString)));
+        // user ask for new friend
+        connect(clientThread, SIGNAL(signal_new_friend(QString,QString)), this, SLOT(slot_new_friend(QString,QString)));
+        connect(clientThread, SIGNAL(signal_send_friend_list(QString,bool,bool)), this, SLOT(slot_send_friend_list(QString,bool,bool)));
         // user send text and file
         connect(clientThread, SIGNAL(signal_receive_text(QDateTime,QString,QString,QString)), this,
                 SLOT(slot_receive_resend_text(QDateTime,QString,QString,QString)));
@@ -125,6 +128,28 @@ void ServerThread::slot_validate_user(QString username, QString password)
     }
     else
         senderThread->slot_validate_user(NULL);
+}
+
+void ServerThread::slot_new_friend(QString myName, QString name)
+{
+    ClientThread* senderThread = (ClientThread*) QObject::sender();
+    log("info", QString("slot_new_friend(): finding name %1").arg(name));
+    if (userMap.findUser(name) != NULL)
+    {
+        User* me = userMap.findUser(myName);
+        User* friendUser = userMap.findUser(name);
+        me->addFriend(friendUser);
+        senderThread->slot_send_friend_list(true, true);
+
+        // friend's list needs to refresh
+        ClientThread* friendThread = this->usernameToThreadMap.find(name).value();
+        if (friendThread != NULL)
+        {
+            friendThread->slot_send_friend_list(false, true);
+        }
+    }
+    else
+        senderThread->slot_send_friend_list(true, false);
 }
 
 // receive text from client and resend to another client
@@ -151,4 +176,44 @@ void ServerThread::slot_receive_resend_file(QDateTime time, QString sender, QStr
     }
     ClientThread* clientThread = usernameToThreadMap.find(receiver).value();
     clientThread->slot_send_message_file(time, sender, receiver, filename, rawContent);
+}
+
+void ServerThread::slot_send_friend_list(QString username, bool sendForNew, bool succeeded)
+{
+    ClientThread* senderThread = (ClientThread*) QObject::sender();
+    log("info", QString("slot_send_friend_list()"));
+    User* user;
+
+    QString username1;
+    QList<QString> list = usernameToThreadMap.keys();
+    for (int i = 0; i < list.size(); i++)
+    {
+        if (usernameToThreadMap.find(list[i]).value() == senderThread)
+        {
+            username1 = list[i];
+            break;
+        }
+    }
+    log("info", QString("slot_send_friend_list(), username=%1").arg(username1));
+    user = userMap.findUser(username1);
+    log("info", QString("slot_send_friend_list(), user=%1").arg(user->getUsername()));
+
+    QJsonObject jsonObject;
+    jsonObject.insert("action", "send_friends_list_to_client");
+    QJsonArray friendArray;
+    QList<User*> friendList = user->getFriendList();
+    for (int i = 0; i < friendList.size(); i++)
+    {
+        QJsonObject a;
+        a.insert("username", friendList[i]->getUsername());
+        friendArray.append(a);
+    }
+    jsonObject.insert("friends", friendArray);
+
+    jsonObject.insert("send_for_add", QJsonValue(sendForNew));
+    jsonObject.insert("add_success", QJsonValue(succeeded));
+
+    log("info", QString("slot_send_friend_list(): size=%1").arg(friendArray.size()));
+
+    senderThread->slot_send_json(jsonObject);
 }

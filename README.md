@@ -10,7 +10,7 @@
 * 好友间非实时聊天
 * 好友间文件传输
 	- 发送文件（√）
-	- 接收文件
+	- 接收文件（√）
 * 好友间非实时文件传输	
 
 错误
@@ -34,6 +34,16 @@
 #### server回复/发送
 	action: "send_friends_list_to_client"
 	friends: [{username: "zhm_2"}, {username: "zhm_3"}]
+	// send_for_add: true/false
+	// add_success: true/false
+
+### 添加好友
+#### client发送
+	action: "new_friend"
+	username: "zhm_x"
+	
+#### server回复
+同上。
 
 ### client发送文本消息
 #### client发送

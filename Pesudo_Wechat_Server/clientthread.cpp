@@ -97,7 +97,18 @@ void ClientThread::parseReceived(const char* msg, int length)
     else if (action == "get_friends_list")
     {
         log("info", "parseReceived(): Action: client requiring friends list");
-        slot_send_friend_list();
+        slot_send_friend_list(false, false);
+    }
+    /*
+    action: "new_friend"
+    username: "zhm_x"
+    */
+    else if (action == "new_friend")
+    {
+        QString friendName = jsonRec.find("username").value().toString();
+        log("info", QString("parseReceived(): Action: client requiring new friend %1").arg(friendName));
+
+        emit signal_new_friend(user->getUsername(), friendName);
     }
     /*
     action: "send_text_to_server"
@@ -150,7 +161,8 @@ void ClientThread::slot_validate_user(User *user)
         log("info", "slot_validate_user(): Action: client login succeeded");
         log("info", QString("slot_validate_user(): username = %1").arg(user->getUsername()));
         this->user = user;
-        slot_send_friend_list();
+        this->username = user->getUsername();
+        slot_send_friend_list(false, false);
     }
     else
     {
@@ -160,30 +172,18 @@ void ClientThread::slot_validate_user(User *user)
     slot_send_json(jsonSend);
 }
 
+/*
+action: "send_friends_list_to_client"
+friends: [{username: "zhm_2"}, {username: "zhm_3"}]
+// send_for_add: true/false
+// add_success: true/false
+*/
 /**
  * @brief send the friend list to a user
  */
-void ClientThread::slot_send_friend_list()
+void ClientThread::slot_send_friend_list(bool sendForNew, bool succeeded)
 {
-    log("info", QString("slot_send_friend_list(): sending user \"%1\" friend list").arg(user->getUsername()));
-    /*
-    action: "send_friends_list_to_client"
-    friends: [{username: "zhm_2"}, {username: "zhm_3"}]
-    */
-    QJsonObject jsonObject;
-    jsonObject.insert("action", "send_friends_list_to_client");
-    QJsonArray friendArray;
-    QList<User*> friendList = user->getFriendList();
-    for (int i = 0; i < friendList.size(); i++)
-    {
-        QJsonObject a;
-        a.insert("username", friendList[i]->getUsername());
-        friendArray.append(a);
-    }
-    jsonObject.insert("friends", friendArray);
-
-    log("info", QString("slot_send_friend_list(): size=%1").arg(friendArray.size()));
-    slot_send_json(jsonObject);
+    emit signal_send_friend_list(NULL, sendForNew, succeeded);
 }
 
 /**
