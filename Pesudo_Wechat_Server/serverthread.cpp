@@ -95,12 +95,18 @@ void ServerThread::run()
         info.clear();
 
         ClientThread* clientThread = new ClientThread(clientfd);
+        this->fdToThreadMap.insert(clientfd, clientThread);
         // send log to ui
         connect(clientThread, SIGNAL(signal_error_box(QString)), this, SIGNAL(signal_error_box(QString)));
         connect(clientThread, SIGNAL(signal_info_box(QString)), this, SIGNAL(signal_info_box(QString)));
         // user login
         connect(clientThread, SIGNAL(signal_validate_user(QString,QString)), this,
                 SLOT(slot_validate_user(QString,QString)));
+        // user send text and file
+        connect(clientThread, SIGNAL(signal_receive_text(QDateTime,QString,QString,QString)), this,
+                SLOT(slot_receive_resend_text(QDateTime,QString,QString,QString)));
+        connect(clientThread, SIGNAL(signal_receive_file()), this, SLOT(slot_receive_resend_file()));  // TODO
+
         clientThread->start();
     }
 
@@ -109,9 +115,32 @@ void ServerThread::run()
 
 void ServerThread::slot_validate_user(QString username, QString password)
 {
-    ClientThread* sender = (ClientThread*) QObject::sender();
+    ClientThread* senderThread = (ClientThread*) QObject::sender();
     if (userMap.validateUser(username, password))
-        sender->slot_validate_user(userMap.findUser(username));
+    {
+        log("info", QString("slot_validate_user(): validating user %1").arg(username));
+        senderThread->slot_validate_user(userMap.findUser(username));
+        this->usernameToThreadMap.insert(username, senderThread);
+    }
     else
-        sender->slot_validate_user(NULL);
+        senderThread->slot_validate_user(NULL);
+}
+
+// receive text from client and resend to another client
+void ServerThread::slot_receive_resend_text(QDateTime time, QString sender, QString receiver, QString text)
+{
+    if (!this->usernameToThreadMap.contains(receiver))
+    {
+        log("info", QString("slot_receive_resend_text(): the receiver %1 has not logined").arg(receiver));
+        // TODO: save and wait
+        return;
+    }
+    ClientThread* clientThread = usernameToThreadMap.find(receiver).value();
+    clientThread->slot_send_message_text(time, sender, receiver, text);
+}
+
+// receive file from client and resend to another client
+void ServerThread::slot_receive_resend_file()
+{
+    // TODO
 }

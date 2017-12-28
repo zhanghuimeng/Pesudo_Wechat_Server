@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QMap>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -12,7 +13,7 @@
 #include "clientthread.h"
 
 #define BACKLOG 100  // 指定了该服务器所能连接客户端的最大数目
-#define PORT 3777
+#define PORT 5234
 
 class ServerThread: public QThread
 {
@@ -27,6 +28,8 @@ private:
     QString error;
     QString info;
     UserMap userMap;
+    QMap<int, ClientThread*> fdToThreadMap;
+    QMap<QString, ClientThread*> usernameToThreadMap;
 
     void log(QString level, QString msg);
     void log_error(QString msg);
@@ -44,6 +47,8 @@ public:
 
 public slots:
     void slot_validate_user(QString username, QString password);
+    void slot_receive_resend_text(QDateTime time, QString sender, QString receiver, QString text);  // received from some ClientThread
+    void slot_receive_resend_file();
 
 signals:
     void signal_error_box(QString);

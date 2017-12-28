@@ -105,7 +105,14 @@ void ClientThread::parseReceived(const char* msg, int length)
     */
     else if (action == "send_text_to_server")
     {
-        log("info", "parseReceived(): Action: receiving text from client");
+        QJsonObject textObject = jsonRec.find("text").value().toObject();
+        QString text = textObject.find("text").value().toString();
+        QString sender = textObject.find("sendby").value().toString();
+        QString receiver = textObject.find("sendto").value().toString();
+        QDateTime time = QDateTime::fromTime_t(textObject.find("time").value().toInt());
+        log("info", QString("parseReceived(): Action: receiving text from client, sender=%1, receiver=%2, len=%3")
+            .arg(sender).arg(receiver).arg(text.size()));
+        emit signal_receive_text(time, sender, receiver, text);
     }
 }
 
@@ -157,4 +164,35 @@ void ClientThread::slot_send_friend_list()
 
     log("info", QString("slot_send_friend_list(): size=%1").arg(friendArray.size()));
     slot_send_json(jsonObject);
+}
+
+/**
+ * @brief ClientThread::slot_send_message_text
+ * @param time
+ * @param sender
+ * @param receiver
+ * @param text
+ */
+/*
+action: "send_text_to_client"
+text: {text: "send some text blabla...", time: "2017/1/1:00:00:00", sendby: "zhm_1", sendto: "zhm_2"}
+*/
+void ClientThread::slot_send_message_text(QDateTime time, QString sender, QString receiver, QString text)
+{
+    log("info", QString("slot_send_message_text(): sender=%1, text=%2").arg(sender).arg(text));
+    QJsonObject textObject;
+    textObject.insert("text", QJsonValue(text));
+    textObject.insert("sendby", QJsonValue(sender));
+    textObject.insert("sendto", QJsonValue(receiver));
+    textObject.insert("time", QJsonValue(qint64(time.toTime_t())));
+    QJsonObject jsonObject;
+    jsonObject.insert("text", QJsonValue(textObject));
+    jsonObject.insert("action", QJsonValue("send_text_to_client"));
+
+    this->slot_send_json(jsonObject);
+}
+
+void ClientThread::slot_send_message_file()
+{
+    // TODO
 }
