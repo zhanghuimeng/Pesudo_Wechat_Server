@@ -105,7 +105,8 @@ void ServerThread::run()
         // user send text and file
         connect(clientThread, SIGNAL(signal_receive_text(QDateTime,QString,QString,QString)), this,
                 SLOT(slot_receive_resend_text(QDateTime,QString,QString,QString)));
-        connect(clientThread, SIGNAL(signal_receive_file()), this, SLOT(slot_receive_resend_file()));  // TODO
+        connect(clientThread, SIGNAL(signal_receive_file(QDateTime,QString,QString,QString,QString)),
+                this, SLOT(slot_receive_resend_file(QDateTime,QString,QString,QString,QString)));
 
         clientThread->start();
     }
@@ -140,7 +141,14 @@ void ServerThread::slot_receive_resend_text(QDateTime time, QString sender, QStr
 }
 
 // receive file from client and resend to another client
-void ServerThread::slot_receive_resend_file()
+void ServerThread::slot_receive_resend_file(QDateTime time, QString sender, QString receiver, QString filename, QString rawContent)
 {
-    // TODO
+    if (!this->usernameToThreadMap.contains(receiver))
+    {
+        log("info", QString("slot_receive_resend_file(): the receiver %1 has not logined").arg(receiver));
+        // TODO: save and wait
+        return;
+    }
+    ClientThread* clientThread = usernameToThreadMap.find(receiver).value();
+    clientThread->slot_send_message_file(time, sender, receiver, filename, rawContent);
 }

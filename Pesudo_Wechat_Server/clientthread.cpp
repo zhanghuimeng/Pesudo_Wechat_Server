@@ -114,6 +114,26 @@ void ClientThread::parseReceived(const char* msg, int length)
             .arg(sender).arg(receiver).arg(text.size()));
         emit signal_receive_text(time, sender, receiver, text);
     }
+    /*
+    action: "send_file_to_server"
+    file: {filename: "a.png", content: "用base64压缩之后的文件", time: "2017/1/1:00:00:00", sendby: "zhm_1", sendto: "zhm_2"}
+    */
+    else if (action == "send_file_to_server")
+    {
+        QJsonObject fileObject = jsonRec.find("file").value().toObject();
+        QString filename = fileObject.find("filename").value().toString();
+        QString sender = fileObject.find("sendby").value().toString();
+        QString receiver = fileObject.find("sendto").value().toString();
+        QDateTime time = QDateTime::fromTime_t(fileObject.find("time").value().toInt());
+
+        QString rawContent = fileObject.find("content").value().toString();
+        QByteArray encrypted = QByteArray::fromBase64(rawContent.toLocal8Bit());  // TOOD: is this right?  ok.
+        QByteArray original = qUncompress(encrypted);
+
+        log("info", QString("parseReceived(): FILE: sender=%1, receiver=%2, filename=%3").arg(sender).arg(receiver).arg(filename));
+        log("info", QString("parseReceived(): FILE: received size=%1, decoded size=%2").arg(rawContent.size()).arg(original.size()));
+        emit signal_receive_file(time, sender, receiver, filename, rawContent);
+    }
 }
 
 void ClientThread::slot_validate_user(User *user)
@@ -192,7 +212,32 @@ void ClientThread::slot_send_message_text(QDateTime time, QString sender, QStrin
     this->slot_send_json(jsonObject);
 }
 
-void ClientThread::slot_send_message_file()
+/**
+ * @brief ClientThread::slot_send_message_file
+ * @param time
+ * @param sender
+ * @param receiver
+ * @param filename
+ * @param rawContent
+ */
+/*
+action: "send_file_to_client"
+file: {filename: "a.png", content: "用base64压缩之后的文件", time: "2017/1/1:00:00:00", sendby: "zhm_1", sendto: "zhm_2"}
+*/
+void ClientThread::slot_send_message_file(QDateTime time, QString sender, QString receiver,
+                                          QString filename, QString rawContent)
 {
-    // TODO
+    log("info", QString("slot_send_message_file(): sender=%1, filename=%2").arg(sender).arg(filename));
+    QJsonObject jsonObject;
+    QJsonObject fileObject;
+    fileObject.insert("filename", QJsonValue(filename));
+    fileObject.insert("content", QJsonValue(rawContent));
+    fileObject.insert("time", QJsonValue(qint64(time.toTime_t())));
+    fileObject.insert("sendby", QJsonValue(sender));
+    fileObject.insert("sendto", QJsonValue(receiver));
+
+    jsonObject.insert("action", QJsonValue("send_file_to_client"));
+    jsonObject.insert("file", QJsonValue(fileObject));
+
+    this->slot_send_json(jsonObject);
 }

@@ -13,7 +13,7 @@
 #include "clientthread.h"
 
 #define BACKLOG 100  // 指定了该服务器所能连接客户端的最大数目
-#define PORT 5234
+#define PORT 2326
 
 class ServerThread: public QThread
 {
@@ -48,7 +48,7 @@ public:
 public slots:
     void slot_validate_user(QString username, QString password);
     void slot_receive_resend_text(QDateTime time, QString sender, QString receiver, QString text);  // received from some ClientThread
-    void slot_receive_resend_file();
+    void slot_receive_resend_file(QDateTime time, QString sender, QString receiver, QString filename, QString rawContent);  // received from some ClientThread
 
 signals:
     void signal_error_box(QString);
